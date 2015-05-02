@@ -1,0 +1,132 @@
+#!/bin/bash -x
+# stamp timbre A_marquer Img_finale
+
+# (c) 2007-2010 by C.M.
+# under the GPL License
+
+# prendre deux fichiers d'images
+# l'un étant un "sceau" et l'autre une photo
+# et marquer la photo du sceau, en bas à droite (ou gauche)
+
+# Image timbre
+SCEAU="$1"
+# Image à marquer
+PIC="$2"
+# Fichier de sortie
+OUT_IMAGE="$3"
+# Proportion du timbre par rapport à l'image
+SCALE="/ 20"
+# Texte ajouté sous le timbre
+TEXTE=""
+
+
+# dimensions de l'image à marquer
+width_pic=`identify -format %w "$PIC"`
+height_pic=`identify -format %h "$PIC"`
+
+# dimensions du sceau
+width_sceau=`identify -format %w "$SCEAU"`
+height_sceau=`identify -format %h "$SCEAU"`
+
+# dimensions auxquelles réduire le sceau
+stamp_w=$(( $width_pic $SCALE * 2))
+stamp_h=$(( $height_pic $SCALE))
+
+
+# dimensionner le sceau à la bonne taille
+# PUIS mettre un bord transparent autour du sceau pour qu'il ne soit pas au bord
+# PUIS coller le sceau sur l'image avec un dissolve
+convert  "${SCEAU}" -resize "${stamp_w}"x"${stamp_h}"\> \
+    -size "${stamp_w}"x"${stamp_h}" miff:- |\
+convert - -matte -bordercolor none -border 20% miff:- |\
+convert "$PIC" - -matte -gravity South-East \
+    -set "option:compose:outside-overlay" "false" \
+    -compose Over \
+    -compose dissolve  -set "option:compose:args" 60 \
+    -composite   "$OUT_IMAGE"
+
+
+
+
+
+#####################################################################
+# TODO-LIST :
+# BUG : taille du texte non adaptive (solution : redimensionner slmt après ajout du texte ? redimensionner une deuxième fois après ajout du texte ?)
+# BUG : taille du "bord du timbre" non adaptive
+#
+# EXTENSION : changer les paramètres fixes via cmd-line.
+# EXTENSION : prendre un sceau et une liste de fichiers à marquer.
+# EXTENSION ? changer le placement si pas de texte.
+# EXTENSION ? changer le mode d'affichage si pas de logo.
+
+
+
+
+# while getopts :t:s:o: OPT; do
+#     case $OPT in
+# 	t|+t) 
+# 	TEXTE="$OPTARG"
+# 	;;s|+s)
+# 	SCALE="$OPTARG"
+# 	;;o|+o)
+# 	OUT_IMAGE="$OPTARG"
+# 	;;*)
+# 	echo "usage: ${0##*/} [+-t ARG] [+-s ARG] [+-o ARG} [--] ARGS..."
+# 	exit 2
+#     esac
+# done
+# shift $[ OPTIND - 1 ]
+
+##### POUR utiliser un fichier temporaire :
+#SCEAU_rsz="`mktemp -u tmp.XXXXX`".${SCEAU##*.} || exit 1
+#echo "--- $SCEAU_rsz ---"
+#echo $SCEAU $PIC
+
+
+
+# Creer une image avec le texte.
+# convert -matte -background none -fill white \
+#     -font Helvetica-Bold -size ${stamp_w}x \
+#     -gravity center \
+#     label:"${TEXTE}" "${SCEAU_rsz}"
+
+# ajouter sous le sceau le $TEXTE que l'on souhaite
+# puis ajout d'une marge pour ne pas coller au bord
+# réduire la taille du sceau à la proportion $SCALE
+# pour finalement coller le coller dans l'image finale
+
+
+#convert "${SCEAU}" -extent "${stamp_w}" $OUT_IMAGE
+
+# # convert  "${SCEAU}" -resize "${stamp_w}"x"${stamp_h}"\> \
+# #     -size "${stamp_w}"x"${stamp_h}" \
+# #     -gravity center -composite miff:- |\
+# # convert -matte -background none miff:- "${SCEAU_rsz}" -append miff:- |\
+# # convert -matte -bordercolor none miff:- -border 10 miff:- |\
+# # convert miff:- -resize "${stamp_w}"x"${stamp_h}"\> miff:- |\
+# # composite -dissolve 50% -gravity SouthEast miff:- $PIC $OUT_IMAGE
+
+# # dimensionner le sceau à la bonne taille
+# convert  "${SCEAU}" -resize "${stamp_w}"x"${stamp_h}"\> \
+#     -size "${stamp_w}"x"${stamp_h}" $SCEAU_rsz
+# # mettre un bord transparent autour du sceau pour qu'il ne soit pas au bord
+# convert $SCEAU_rsz -matte -bordercolor none -border 20%  $SCEAU_rsz
+# #coller le sceau sur l'image
+# convert $PIC $SCEAU_rsz -matte -gravity South-East \
+#     -set "option:compose:outside-overlay" "false" \
+#     -compose Over \
+#     -compose dissolve  -set "option:compose:args" 60 \
+#     -composite   $OUT_IMAGE
+# rm $SCEAU_rsz
+
+
+
+
+# convert -background '#FFFF' -fill white -gravity South \
+#     -size ${stamp_w}x50 \
+#     -font Helvetica-Bold -pointsize 20\
+#     caption:"$TEXTE" \
+#     +size miff:- +swap -append -gravity South \
+#     -composite miff:- |\
+
+
